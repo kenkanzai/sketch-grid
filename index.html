@@ -86,7 +86,7 @@ body.clean .top,body.clean .panel,body.clean .tabs{display:none!important}
       <button id="prevBtn" aria-label="Previous square"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
       <span id="cellName">A1</span>
       <button id="nextBtn" aria-label="Next square"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></button>
-      <button id="doneBtn">Done</button>
+      <button id="doneBtn" class="primary" style="min-height:44px;font-size:14px;padding:6px 16px;white-space:nowrap">Exit zoom</button>
     </div>
     <div id="toast" role="status"></div>
   </main>
@@ -163,7 +163,7 @@ function counts(){const P=paper();return{cols:Math.ceil(P.w/S.sq-1e-6),rows:Math
 function colName(i){let s='';i++;while(i>0){const m=(i-1)%26;s=String.fromCharCode(65+m)+s;i=Math.floor((i-1)/26)}return s}
 function fmt(n){return(Math.round(n*10)/10).toString()}
 function isLight(hex){const v=parseInt(hex.slice(1),16);return(.299*(v>>16)+.587*(v>>8&255)+.114*(v&255))/255>.6}
-function toast(t){const el=$('toast');el.textContent=t;el.classList.add('show');clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove('show'),2200)}
+function toast(t,ms){const el=$('toast');el.textContent=t;el.classList.add('show');clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove('show'),ms||2200)}
 function req(){if(!rq)rq=requestAnimationFrame(()=>{rq=0;render()})}
 
 function orient(){
@@ -192,7 +192,7 @@ function process(){
   proc=c;req();
 }
 function fitScale(fill){const P=paper();return fill?Math.max(P.w/src.width,P.h/src.height):Math.min(P.w/src.width,P.h/src.height)}
-function fit(fill){if(!src)return;const P=paper(),s=fitScale(fill);S.place={x:(P.w-src.width*s)/2,y:(P.h-src.height*s)/2,s};focus=null;$('focusBar').hidden=true;saveSoon();req()}
+function fit(fill){if(!src)return;const P=paper(),s=fitScale(fill);S.place={x:(P.w-src.width*s)/2,y:(P.h-src.height*s)/2,s};exitFocus();saveSoon();req()}
 
 function cellRect(c,r){const P=paper(),q=S.sq,x=c*q,y=r*q;return{x,y,w:Math.min(q,P.w-x),h:Math.min(q,P.h-y)}}
 function cam(){
@@ -244,11 +244,20 @@ function updateInfo(){
 }
 
 /* focus mode */
-function setFocus(c,r){focus={c,r};$('focusBar').hidden=false;$('cellName').textContent=colName(c)+(r+1);req()}
+let pushed=false;
+function setFocus(c,r){
+  if(!focus){
+    try{history.pushState({sgFocus:1},'');pushed=true}catch(e){}
+    let seen=false;try{seen=localStorage.getItem('sg-zoom-hint')==='1';localStorage.setItem('sg-zoom-hint','1')}catch(e){}
+    if(!seen)toast('Swipe for next square. Tap outside to exit.',4000);
+  }
+  focus={c,r};$('focusBar').hidden=false;$('cellName').textContent=colName(c)+(r+1);req()
+}
 function step(d){if(!focus)return;const{cols,rows}=counts(),n=cols*rows;let i=(focus.r*cols+focus.c+d+n)%n;setFocus(i%cols,Math.floor(i/cols))}
-function exitFocus(){focus=null;$('focusBar').hidden=true;req()}
+function exitFocus(){if(!focus)return;focus=null;$('focusBar').hidden=true;req();if(pushed){pushed=false;try{history.back()}catch(e){}}}
 function focusAt(sx,sy){const c=cam(),P=paper(),px=(sx-c.tx)/c.s,py=(sy-c.ty)/c.s;if(px<0||py<0||px>=P.w||py>=P.h)return;setFocus(Math.floor(px/S.sq),Math.floor(py/S.sq))}
 $('prevBtn').onclick=()=>step(-1);$('nextBtn').onclick=()=>step(1);$('doneBtn').onclick=exitFocus;
+window.addEventListener('popstate',()=>{if(focus){pushed=false;focus=null;$('focusBar').hidden=true;req()}});
 $('focusBtn').onclick=()=>{if(!proc)return toast('Open a photo first.');setFocus(0,0)};
 
 /* gestures */
@@ -269,6 +278,7 @@ function up(e){
   if(!pts.has(e.pointerId))return;pts.delete(e.pointerId);
   if(tap&&pts.size===0){
     if(!tap.moved&&Date.now()-tap.t<350&&proc&&!focus){const now=Date.now(),tx=tap.x,ty=tap.y;clearTimeout(single);if(now-lastTap<320){focusAt(tx,ty);lastTap=0}else{lastTap=now;single=setTimeout(singleTap,320)}}
+    if(!tap.moved&&Date.now()-tap.t<350&&focus){const c=cam(),r=cellRect(focus.c,focus.r),px=(tap.x-c.tx)/c.s,py=(tap.y-c.ty)/c.s;if(px<r.x||py<r.y||px>r.x+r.w||py>r.y+r.h)exitFocus()}
     if(tap.moved&&focus){const dx=e.offsetX-tap.x;if(Math.abs(dx)>50)step(dx<0?1:-1)}
   }
   if(pts.size===0)tap=null;last=pts.size?gest():null;
