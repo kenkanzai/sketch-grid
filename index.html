@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Sketch Grid</title>
 <meta name="theme-color" content="#2A2E31">
+<meta name="color-scheme" content="light dark">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
@@ -17,9 +18,10 @@
 html,body{height:100%;margin:0}
 body{background:var(--desk);color:var(--text);font:15px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-tap-highlight-color:transparent;overscroll-behavior:none}
 .app{height:100%;display:grid;grid-template-rows:auto minmax(0,1fr) auto auto}
-.top{display:flex;align-items:center;gap:8px;padding:8px 12px}
-.brand{font-weight:600;font-size:17px;flex:1}
-button,.btn{font:inherit;font-size:14px;color:var(--text);background:var(--raise);border:1px solid var(--line);border-radius:10px;padding:8px 13px;min-height:42px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;user-select:none}
+.top{display:flex;align-items:center;gap:6px;padding:4px 8px 4px 12px}
+.brand{font-weight:600;font-size:15px;flex:1}
+.ib{width:40px;min-height:38px;padding:0}
+button,.btn{font:inherit;font-size:13px;color:var(--text);background:var(--raise);border:1px solid var(--line);border-radius:9px;padding:6px 11px;min-height:38px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;user-select:none}
 .btn input{display:none}
 button:focus-visible,.btn:focus-within{outline:2px solid var(--accent);outline-offset:2px}
 button.on{background:var(--accent-bg);border-color:var(--accent);color:var(--accent)}
@@ -31,24 +33,29 @@ canvas{display:block;width:100%;height:100%}
 #empty p{color:var(--muted);margin:0 0 8px;max-width:30ch}
 #empty .btns{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
 .primary{background:var(--accent);border-color:var(--accent);color:var(--desk);font-weight:600}
-.panel{background:var(--panel);border-top:1px solid var(--line);padding:14px 14px 2px;max-height:36vh;overflow-y:auto}
+.panel{background:var(--panel);border-top:1px solid var(--line);padding:10px 12px 2px;max-height:30vh;overflow-y:auto}
 .pane{display:none}.pane.show{display:block}
-.row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px}
-.lbl{font-size:13px;color:var(--muted);width:76px;flex:none}
-.seg{display:flex;gap:6px;flex-wrap:wrap;flex:1}
-.seg button{min-height:38px;padding:6px 11px}
-input[type=range]{flex:1;min-width:110px;accent-color:var(--accent);height:30px;margin:0}
+.row{display:flex;align-items:center;gap:6px;margin-bottom:8px}
+.lbl{font-size:12px;color:var(--muted);width:62px;flex:none}
+.seg{display:flex;gap:5px;flex:1;overflow-x:auto;scrollbar-width:none}
+.seg::-webkit-scrollbar{display:none}
+.seg button{min-height:32px;padding:4px 10px;white-space:nowrap;flex:none}
+.step{width:32px;min-height:32px;padding:0;font-size:17px;flex:none}
+input[type=range]{flex:1;min-width:80px;accent-color:var(--accent);height:24px;margin:0}
 input[type=number]{font:inherit;width:84px;min-height:40px;padding:6px 8px;border-radius:10px;border:1px solid var(--line);background:var(--raise);color:var(--text)}
-.val{font-size:13px;min-width:46px;text-align:right;font-variant-numeric:tabular-nums}
-.sw{width:36px;height:36px;min-height:36px;padding:0;border-radius:50%;border:2px solid var(--line)}
+.val{font-size:12px;min-width:40px;text-align:right;font-variant-numeric:tabular-nums}
+.sw{width:28px;height:28px;min-height:28px;flex:none;padding:0;border-radius:50%;border:2px solid var(--line)}
+.seg .sw{padding:0;height:28px;min-height:28px}
 .sw.on{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent)}
-.info{font-size:14px;margin:0 0 12px;font-variant-numeric:tabular-nums}
-.hint{font-size:13px;color:var(--muted);margin:0 0 12px}
-.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-bottom:12px}
+.info{font-size:13px;margin:0 0 8px;font-variant-numeric:tabular-nums}
+.hint{font-size:12px;color:var(--muted);margin:0 0 8px}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:6px;margin-bottom:8px}
 .tabs{display:grid;grid-template-columns:repeat(4,1fr);background:var(--panel);border-top:1px solid var(--line)}
-.tabs button{border:0;border-radius:0;background:transparent;flex-direction:column;gap:2px;font-size:12px;padding:6px 0;min-height:56px;color:var(--muted)}
+.tabs button{border:0;border-radius:0;background:transparent;flex-direction:column;gap:1px;font-size:11px;padding:4px 0;min-height:46px;color:var(--muted)}
 .tabs button.on{color:var(--accent);background:transparent}
-.tabs svg{width:22px;height:22px}
+.tabs svg{width:20px;height:20px}
+body.clean .top,body.clean .panel,body.clean .tabs{display:none!important}
+@media (orientation:landscape) and (min-width:700px){.app{grid-template-columns:minmax(0,1fr) 340px;grid-template-rows:auto minmax(0,1fr) auto}.top{grid-column:1/3}#stage{grid-column:1;grid-row:2/4}.panel{grid-column:2;grid-row:2;max-height:none;border-top:0;border-left:1px solid var(--line)}.tabs{grid-column:2;grid-row:3;border-left:1px solid var(--line)}body.clean #stage{grid-row:1/4;grid-column:1/3}.panel .seg{flex-wrap:wrap}}
 #focusBar{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);display:flex;gap:6px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:6px}
 #cellName{min-width:58px;text-align:center;font-weight:600;font-size:19px;font-variant-numeric:tabular-nums}
 #toast{position:absolute;left:50%;top:12px;transform:translateX(-50%);background:var(--text);color:var(--desk);padding:8px 14px;border-radius:10px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;max-width:90%;text-align:center}
@@ -61,8 +68,8 @@ input[type=number]{font:inherit;width:84px;min-height:40px;padding:6px 8px;borde
 <div class="app">
   <header class="top">
     <span class="brand">Sketch Grid</span>
-    <label class="btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5M4 20h16"/></svg>Open<input type="file" accept="image/*" class="fileIn"></label>
-    <button id="lockBtn" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path id="lockPath" d="M8 11V8a4 4 0 0 1 8 0"/></svg><span id="lockTxt">Lock</span></button>
+    <label class="btn ib" aria-label="Open photo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5M4 20h16"/></svg><input type="file" accept="image/*" class="fileIn"></label>
+    <button id="lockBtn" class="ib" aria-pressed="false" aria-label="Lock photo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path id="lockPath" d="M8 11V8a4 4 0 0 1 8 0"/></svg></button>
   </header>
 
   <main id="stage">
@@ -89,31 +96,29 @@ input[type=number]{font:inherit;width:84px;min-height:40px;padding:6px 8px;borde
       <p class="info" id="gridInfo"></p>
       <div class="row"><span class="lbl">Guide</span><div class="seg">
         <button data-k="guide" data-v="none">None</button><button data-k="guide" data-v="grid">Grid</button><button data-k="guide" data-v="diag">Diagonal</button><button data-k="guide" data-v="both">Both</button></div></div>
-      <div class="row"><span class="lbl">Square size</span><div class="seg">
-        <button data-k="sq" data-v="1">1 cm</button><button data-k="sq" data-v="2">2 cm</button><button data-k="sq" data-v="3">3 cm</button><button data-k="sq" data-v="4">4 cm</button><button data-k="sq" data-v="5">5 cm</button></div></div>
-      <div class="row"><span class="lbl">Fine size</span><input type="range" data-k="sq" min="0.5" max="10" step="0.5"><span class="val" id="sqVal"></span></div>
-      <div class="row"><span class="lbl">Line colour</span><div class="seg" id="swatches"></div></div>
+      <div class="row"><span class="lbl">Square</span><button class="step" id="sqMinus" aria-label="Smaller squares">−</button><span class="val" id="sqVal" style="text-align:center"></span><button class="step" id="sqPlus" aria-label="Bigger squares">+</button><input type="range" data-k="sq" min="0.5" max="10" step="0.5" aria-label="Square size"></div>
+      <div class="row"><span class="lbl">Colour</span><div class="seg" id="swatches"></div></div>
       <div class="row"><span class="lbl">Strength</span><input type="range" data-k="alpha" min="0.2" max="1" step="0.05"><span class="val" id="alphaVal"></span></div>
-      <div class="row"><span class="lbl">Thickness</span><input type="range" data-k="thick" min="1" max="5" step="0.5"><span class="val" id="thickVal"></span></div>
+      <div class="row"><span class="lbl">Thick</span><input type="range" data-k="thick" min="1" max="5" step="0.5"><span class="val" id="thickVal"></span></div>
       <div class="row"><span class="lbl">Labels</span><div class="seg"><button data-k="labels" data-v="true">Show A1, B2</button><button data-k="labels" data-v="false">Hide</button></div></div>
-      <p class="hint">Tap the open tab again to hide settings and see more of the photo.</p>
+      <p class="hint">Tap the photo to hide settings. Tap it again for full view.</p>
     </div>
 
     <div class="pane" data-pane="paper">
       <p class="info" id="paperInfo"></p>
       <div class="row"><span class="lbl">Paper</span><div class="seg">
         <button data-k="paper" data-v="A5">A5</button><button data-k="paper" data-v="A4">A4</button><button data-k="paper" data-v="A3">A3</button><button data-k="paper" data-v="Letter">Letter</button><button data-k="paper" data-v="Square">Square</button><button data-k="paper" data-v="Custom">Custom</button></div></div>
-      <div class="row" id="customRow"><span class="lbl">Size (cm)</span><input type="number" id="cw" min="5" max="200" step="0.1" aria-label="Width in cm"> <span>×</span> <input type="number" id="ch" min="5" max="200" step="0.1" aria-label="Height in cm"></div>
-      <div class="row"><span class="lbl">Direction</span><div class="seg"><button data-k="land" data-v="false">Portrait</button><button data-k="land" data-v="true">Landscape</button></div></div>
+      <div class="row" id="customRow"><span class="lbl">Size cm</span><input type="number" id="cw" min="5" max="200" step="0.1" aria-label="Width in cm"> <span>×</span> <input type="number" id="ch" min="5" max="200" step="0.1" aria-label="Height in cm"></div>
+      <div class="row"><span class="lbl">Turn</span><div class="seg"><button data-k="land" data-v="false">Portrait</button><button data-k="land" data-v="true">Landscape</button></div></div>
       <div class="grid2"><button id="fillBtn">Fill the paper</button><button id="fitBtn">Show whole photo</button></div>
       <p class="hint">The white frame is your paper. Drag the photo to move it and pinch to resize. Double-tap a square to zoom into it.</p>
     </div>
 
     <div class="pane" data-pane="image">
-      <div class="row"><span class="lbl">Image</span><div class="seg"><button data-k="mode" data-v="color">Colour</button><button data-k="mode" data-v="bw">Black and white</button><button data-k="mode" data-v="tones">Tones</button></div></div>
+      <div class="row"><span class="lbl">Image</span><div class="seg"><button data-k="mode" data-v="color">Colour</button><button data-k="mode" data-v="bw">B and W</button><button data-k="mode" data-v="tones">Tones</button></div></div>
       <div class="row" id="tonesRow"><span class="lbl">Tones</span><div class="seg"><button data-k="tones" data-v="3">3</button><button data-k="tones" data-v="4">4</button><button data-k="tones" data-v="5">5</button></div></div>
       <p class="hint" id="tonesHint">Tones groups the photo into a few greys, so you see light, middle and dark areas before shading.</p>
-      <div class="row"><span class="lbl">Brightness</span><input type="range" data-k="bright" min="-50" max="50" step="1"><span class="val" id="brightVal"></span></div>
+      <div class="row"><span class="lbl">Bright</span><input type="range" data-k="bright" min="-50" max="50" step="1"><span class="val" id="brightVal"></span></div>
       <div class="row"><span class="lbl">Contrast</span><input type="range" data-k="contrast" min="-50" max="50" step="1"><span class="val" id="contrastVal"></span></div>
       <div class="grid2"><button id="resetImgBtn">Reset image</button></div>
     </div>
@@ -150,7 +155,7 @@ let S={...DEF};
 try{Object.assign(S,JSON.parse(localStorage.getItem('sg-settings')||'{}'))}catch(e){}
 let saveT;function saveSoon(){clearTimeout(saveT);saveT=setTimeout(()=>{try{localStorage.setItem('sg-settings',JSON.stringify(S))}catch(e){}},300)}
 
-const cv=$('cv'),ctx=cv.getContext('2d');
+const cv=$('cv'),ctx=cv.getContext('2d'),panel=$('panel');
 let baseImg=null,src=null,proc=null,locked=false,focus=null,rq=0;
 
 function paper(){let [w,h]=S.paper==='Custom'?[+S.cw||20,+S.ch||25]:PAPERS[S.paper];const a=Math.min(w,h),b=Math.max(w,h);return S.land?{w:b,h:a}:{w:a,h:b}}
@@ -193,7 +198,7 @@ function cellRect(c,r){const P=paper(),q=S.sq,x=c*q,y=r*q;return{x,y,w:Math.min(
 function cam(){
   const w=cv.clientWidth,h=cv.clientHeight,P=paper();
   if(focus){const c=cellRect(focus.c,focus.r),s=Math.min(w*.8/c.w,(h-80)*.8/c.h);return{s,tx:w/2-(c.x+c.w/2)*s,ty:(h-64)/2-(c.y+c.h/2)*s}}
-  const pad=18,s=Math.min((w-pad*2)/P.w,(h-pad*2)/P.h);return{s,tx:(w-P.w*s)/2,ty:(h-P.h*s)/2}
+  const pad=8,s=Math.min((w-pad*2)/P.w,(h-pad*2)/P.h);return{s,tx:(w-P.w*s)/2,ty:(h-P.h*s)/2}
 }
 
 function drawGrid(x,P,s,lab){
@@ -247,7 +252,8 @@ $('prevBtn').onclick=()=>step(-1);$('nextBtn').onclick=()=>step(1);$('doneBtn').
 $('focusBtn').onclick=()=>{if(!proc)return toast('Open a photo first.');setFocus(0,0)};
 
 /* gestures */
-const pts=new Map();let last=null,tap=null,lastTap=0;
+const pts=new Map();let last=null,tap=null,lastTap=0,single=0,cleanTold=false;
+function singleTap(){if(!panel.hidden){closePanel();return}const on=document.body.classList.toggle('clean');if(on&&!cleanTold){cleanTold=true;toast('Full view. Tap the photo to show controls.')}}
 function gest(){const a=[...pts.values()];if(a.length===1)return{x:a[0].x,y:a[0].y,d:0};const[p,q]=a;return{x:(p.x+q.x)/2,y:(p.y+q.y)/2,d:Math.hypot(p.x-q.x,p.y-q.y)}}
 function zoomAt(sx,sy,k,c){const pl=S.place,f=fitScale(false),ns=Math.min(Math.max(pl.s*k,f*.2),f*30);k=ns/pl.s;const px=(sx-c.tx)/c.s,py=(sy-c.ty)/c.s;pl.x=px-(px-pl.x)*k;pl.y=py-(py-pl.y)*k;pl.s=ns}
 cv.addEventListener('pointerdown',e=>{cv.setPointerCapture(e.pointerId);pts.set(e.pointerId,{x:e.offsetX,y:e.offsetY});tap=pts.size===1?{x:e.offsetX,y:e.offsetY,t:Date.now(),moved:false}:null;last=gest()});
@@ -262,7 +268,7 @@ cv.addEventListener('pointermove',e=>{
 function up(e){
   if(!pts.has(e.pointerId))return;pts.delete(e.pointerId);
   if(tap&&pts.size===0){
-    if(!tap.moved&&Date.now()-tap.t<350&&proc&&!focus){const now=Date.now();if(now-lastTap<320){focusAt(tap.x,tap.y);lastTap=0}else lastTap=now}
+    if(!tap.moved&&Date.now()-tap.t<350&&proc&&!focus){const now=Date.now(),tx=tap.x,ty=tap.y;clearTimeout(single);if(now-lastTap<320){focusAt(tx,ty);lastTap=0}else{lastTap=now;single=setTimeout(singleTap,320)}}
     if(tap.moved&&focus){const dx=e.offsetX-tap.x;if(Math.abs(dx)>50)step(dx<0?1:-1)}
   }
   if(pts.size===0)tap=null;last=pts.size?gest():null;
@@ -270,7 +276,7 @@ function up(e){
 cv.addEventListener('pointerup',up);cv.addEventListener('pointercancel',up);
 cv.addEventListener('wheel',e=>{e.preventDefault();if(!proc||!S.place||locked||focus)return;zoomAt(e.offsetX,e.offsetY,Math.exp(-e.deltaY*.0015),cam());saveSoon();req()},{passive:false});
 
-$('lockBtn').onclick=()=>{locked=!locked;$('lockBtn').classList.toggle('on',locked);$('lockBtn').setAttribute('aria-pressed',locked);$('lockTxt').textContent=locked?'Locked':'Lock';$('lockPath').setAttribute('d',locked?'M8 11V8a4 4 0 0 1 8 0v3':'M8 11V8a4 4 0 0 1 8 0');toast(locked?'Photo locked. It won’t move while you draw.':'Photo unlocked. Drag to move it.')};
+$('lockBtn').onclick=()=>{locked=!locked;$('lockBtn').classList.toggle('on',locked);$('lockBtn').setAttribute('aria-pressed',locked);$('lockBtn').setAttribute('aria-label',locked?'Unlock photo':'Lock photo');$('lockPath').setAttribute('d',locked?'M8 11V8a4 4 0 0 1 8 0v3':'M8 11V8a4 4 0 0 1 8 0');toast(locked?'Photo locked. It won’t move while you draw.':'Photo unlocked. Drag to move it.')};
 
 /* controls */
 const swWrap=$('swatches');
@@ -297,19 +303,17 @@ function syncUI(){
   $('wakeBtn').classList.toggle('on',wantWake);$('wakeBtn').textContent=wantWake?'Screen stays on':'Keep screen on';
   updateInfo();
 }
+$('sqMinus').onclick=()=>setKey('sq',Math.max(.5,S.sq-.5));$('sqPlus').onclick=()=>setKey('sq',Math.min(10,S.sq+.5));
 $('fillBtn').onclick=()=>fit(true);$('fitBtn').onclick=()=>fit(false);
 $('resetImgBtn').onclick=()=>{S.mode='color';S.bright=0;S.contrast=0;S.tones=4;saveSoon();process();syncUI()};
 $('mirrorBtn').onclick=()=>{if(!src)return toast('Open a photo first.');const P=paper(),pl=S.place;S.flip=!S.flip;pl.x=P.w-(pl.x+src.width*pl.s);orient();saveSoon();toast(S.flip?'Photo mirrored':'Mirror off')};
 $('rotBtn').onclick=()=>{if(!src)return toast('Open a photo first.');S.rot=(S.rot+90)%360;orient();fit(true)};
 
 /* tabs */
-const panel=$('panel');
-document.querySelectorAll('[data-tab]').forEach(t=>t.addEventListener('click',()=>{
-  const open=t.classList.contains('on')&&!panel.hidden;
-  document.querySelectorAll('[data-tab]').forEach(x=>x.classList.toggle('on',x===t&&!open));
-  panel.hidden=open;
-  document.querySelectorAll('.pane').forEach(p=>p.classList.toggle('show',p.dataset.pane===t.dataset.tab));
-}));
+
+function showTab(n){panel.hidden=false;document.querySelectorAll('[data-tab]').forEach(x=>x.classList.toggle('on',x.dataset.tab===n));document.querySelectorAll('.pane').forEach(p=>p.classList.toggle('show',p.dataset.pane===n))}
+function closePanel(){panel.hidden=true;document.querySelectorAll('[data-tab]').forEach(x=>x.classList.remove('on'))}
+document.querySelectorAll('[data-tab]').forEach(t=>t.addEventListener('click',()=>{if(!panel.hidden&&t.classList.contains('on'))closePanel();else showTab(t.dataset.tab)}));
 new ResizeObserver(req).observe($('stage'));
 
 /* files and storage */
@@ -318,7 +322,7 @@ async function dbPut(b){const d=await db();return new Promise((res,rej)=>{const 
 async function dbGet(){const d=await db();return new Promise((res,rej)=>{const r=d.transaction('img').objectStore('img').get('last');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
 function loadBlob(b,fresh){
   const u=URL.createObjectURL(b),i=new Image();
-  i.onload=()=>{baseImg=i;if(fresh){S.rot=0;S.flip=false;S.place=null}orient();if(!S.place)fit(true);URL.revokeObjectURL(u)};
+  i.onload=()=>{baseImg=i;closePanel();if(fresh){S.rot=0;S.flip=false;S.place=null}orient();if(!S.place)fit(true);URL.revokeObjectURL(u)};
   i.onerror=()=>toast('This file can’t be opened. Try a JPG or PNG photo.');
   i.src=u;
 }
