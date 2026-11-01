@@ -144,7 +144,8 @@ body.clean .top,body.clean .panel,body.clean .tabs{display:none!important}
     <div class="pane" data-pane="image">
       <div class="row"><span class="lbl">Image</span><div class="seg"><button data-k="mode" data-v="color">Colour</button><button data-k="mode" data-v="bw">Greyscale</button><button data-k="mode" data-v="tones">Tones</button></div></div>
       <div class="row" id="tonesRow"><span class="lbl">Tones</span><div class="seg"><button data-k="tones" data-v="3">3</button><button data-k="tones" data-v="4">4</button><button data-k="tones" data-v="5">5</button></div></div>
-      <p class="hint" id="tonesHint">Tones groups the photo into a few greys, fitted to this photo. 1 is the lightest. Use Pick a colour to see which tone a spot is.</p>
+      <div class="row" id="toneColRow"><span class="lbl">Tone colour</span><div class="seg"><button data-k="toneCol" data-v="false">Grey</button><button data-k="toneCol" data-v="true">Colour</button></div></div>
+      <p class="hint" id="tonesHint">Tones groups the photo into a few light-to-dark steps, fitted to this photo. 1 is the lightest. Colour keeps the photo's colours as flat patches at each step's lightness, so you can paint them. Use Pick a colour to see which tone a spot is.</p>
       <div class="row"><span class="lbl">Bright</span><input type="range" data-k="bright" min="-50" max="50" step="1"><span class="val" id="brightVal"></span></div>
       <div class="row"><span class="lbl">Contrast</span><input type="range" data-k="contrast" min="-50" max="50" step="1"><span class="val" id="contrastVal"></span></div>
       <div class="grid2"><button id="pickBtn">Pick a colour</button><button id="resetImgBtn">Reset image</button></div>
@@ -178,7 +179,7 @@ body.clean .top,body.clean .panel,body.clean .tabs{display:none!important}
 const $=id=>document.getElementById(id);
 const PAPERS={A5:[14.8,21],A4:[21,29.7],A3:[29.7,42],Letter:[21.6,27.9],Square:[20,20]};
 const COLORS=[['Red','#E5484D'],['Black','#111111'],['White','#FFFFFF'],['Blue','#2F80ED'],['Yellow','#F5C400']];
-const DEF={guide:'grid',sq:2,color:'#E5484D',alpha:.8,thick:2,labels:true,paper:'A4',cw:20,ch:25,land:false,mode:'color',tones:4,bright:0,contrast:0,flip:false,rot:0,place:null,done:{}};
+const DEF={guide:'grid',sq:2,color:'#E5484D',alpha:.8,thick:2,labels:true,paper:'A4',cw:20,ch:25,land:false,mode:'color',tones:4,toneCol:true,bright:0,contrast:0,flip:false,rot:0,place:null,done:{}};
 let S={...DEF};
 try{Object.assign(S,JSON.parse(localStorage.getItem('sg-settings')||'{}'))}catch(e){}
 let saveT;function saveSoon(){clearTimeout(saveT);saveT=setTimeout(()=>{try{localStorage.setItem('sg-settings',JSON.stringify(S))}catch(e){}},300)}
@@ -215,6 +216,22 @@ function updateLegend(){
   for(let k=1;k<=S.tones;k++){const g=toneGrey(S.tones-k,S.tones);h+=`<b style="background:rgb(${g},${g},${g});color:${g>140?'#1E2225':'#FFFFFF'}">${k}</b>`}
   el.innerHTML=h;
 }
+/* colour tones: same light-to-dark steps, each patch keeps its colour (12 hue groups + neutral) at the step's lightness */
+const HUES=12,NB=HUES+1;
+function hueBucket(r,g,b){const mx=Math.max(r,g,b),mn=Math.min(r,g,b);if(mx-mn<20)return HUES;let h=mx===r?((g-b)/(mx-mn))%6:mx===g?(b-r)/(mx-mn)+2:(r-g)/(mx-mn)+4;h=(h*60+360)%360;return Math.floor(h/360*HUES)%HUES}
+function colourTones(p,lut,map){
+  const n=S.tones,sum=new Float64Array(n*NB*4),idx=new Uint8Array(p.length/4);
+  for(let i=0,j=0;i<p.length;i+=4,j++){
+    const r=lut[p[i]],g=lut[p[i+1]],b=lut[p[i+2]],k=toneBin[lum8(r,g,b)]*NB+hueBucket(r,g,b);idx[j]=k;
+    sum[k*4]+=r;sum[k*4+1]+=g;sum[k*4+2]+=b;sum[k*4+3]++;
+  }
+  const pal=new Uint8ClampedArray(n*NB*3);
+  for(let k=0;k<n*NB;k++){const c=sum[k*4+3];if(!c)continue;
+    let r=sum[k*4]/c,g=sum[k*4+1]/c,b=sum[k*4+2]/c;const t=toneGrey(Math.floor(k/NB),n);
+    for(let it=0;it<3;it++){const dl=t-(.299*r+.587*g+.114*b);r=Math.min(255,Math.max(0,r+dl));g=Math.min(255,Math.max(0,g+dl));b=Math.min(255,Math.max(0,b+dl))}
+    pal[k*3]=r;pal[k*3+1]=g;pal[k*3+2]=b}
+  for(let i=0,j=0;i<p.length;i+=4,j++){const k=idx[j]*3;p[i]=pal[k];p[i+1]=pal[k+1];p[i+2]=pal[k+2]}
+}
 function process(){
   if(!src)return;
   const c=document.createElement('canvas');c.width=src.width;c.height=src.height;
@@ -227,6 +244,7 @@ function process(){
       for(let i=0;i<p.length;i+=4)hist[lum8(lut[p[i]],lut[p[i+1]],lut[p[i+2]])]++;
       toneBin=binsFromHist(hist,S.tones);map=new Uint8ClampedArray(256);
       for(let v=0;v<256;v++)map[v]=toneGrey(toneBin[v],S.tones);
+      if(S.toneCol){colourTones(p,lut,map);x.putImageData(d,0,0);proc=c;updateLegend();updatePick();req();return}
     }else toneBin=null;
     for(let i=0;i<p.length;i+=4){
       let r=lut[p[i]],g=lut[p[i+1]],b=lut[p[i+2]];
@@ -400,7 +418,7 @@ $('lockBtn').onclick=()=>{locked=!locked;$('lockBtn').classList.toggle('on',lock
 /* controls */
 const swWrap=$('swatches');
 COLORS.forEach(([n,c])=>{const b=document.createElement('button');b.className='sw';b.style.background=c;b.dataset.k='color';b.dataset.v=c;b.setAttribute('aria-label',n);swWrap.appendChild(b)});
-const IMG_KEYS=['mode','tones','bright','contrast'],PAPER_KEYS=['paper','land'];
+const IMG_KEYS=['mode','tones','toneCol','bright','contrast'],PAPER_KEYS=['paper','land'];
 function parseV(v){try{return JSON.parse(v)}catch(e){return v}}
 function setKey(k,v){
   S[k]=v;saveSoon();
@@ -418,13 +436,13 @@ function syncUI(){
   $('sqVal').textContent=fmt(S.sq)+' cm';$('alphaVal').textContent=Math.round(S.alpha*100)+'%';$('thickVal').textContent=fmt(S.thick);
   $('brightVal').textContent=(S.bright>0?'+':'')+S.bright;$('contrastVal').textContent=(S.contrast>0?'+':'')+S.contrast;
   $('customRow').hidden=S.paper!=='Custom';$('cw').value=S.cw;$('ch').value=S.ch;
-  $('tonesRow').hidden=$('tonesHint').hidden=S.mode!=='tones';
+  $('tonesRow').hidden=$('toneColRow').hidden=$('tonesHint').hidden=S.mode!=='tones';
   $('wakeBtn').classList.toggle('on',wantWake);$('wakeBtn').textContent=wantWake?'Screen stays on':'Keep screen on';
   updateInfo();
 }
 $('sqMinus').onclick=()=>setKey('sq',Math.max(.5,S.sq-.5));$('sqPlus').onclick=()=>setKey('sq',Math.min(10,S.sq+.5));
 $('fillBtn').onclick=()=>fit(true);$('fitBtn').onclick=()=>fit(false);
-$('resetImgBtn').onclick=()=>{S.mode='color';S.bright=0;S.contrast=0;S.tones=4;saveSoon();process();syncUI()};
+$('resetImgBtn').onclick=()=>{S.mode='color';S.bright=0;S.contrast=0;S.tones=4;S.toneCol=true;saveSoon();process();syncUI()};
 $('mirrorBtn').onclick=()=>{if(!src)return toast('Open a photo first.');closePick();const P=paper(),pl=S.place;S.flip=!S.flip;pl.x=P.w-(pl.x+src.width*pl.s);orient();saveSoon();toast(S.flip?'Photo mirrored':'Mirror off')};
 $('rotBtn').onclick=()=>{if(!src)return toast('Open a photo first.');closePick();S.rot=(S.rot+90)%360;orient();fit(true)};
 
