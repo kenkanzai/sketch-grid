@@ -60,6 +60,23 @@ body.clean .top,body.clean .panel,body.clean .tabs{display:none!important}
 #cellName{min-width:58px;text-align:center;font-weight:600;font-size:19px;font-variant-numeric:tabular-nums}
 #toast{position:absolute;left:50%;top:12px;transform:translateX(-50%);background:var(--text);color:var(--desk);padding:8px 14px;border-radius:10px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;max-width:90%;text-align:center}
 #toast.show{opacity:1}
+#legend{position:absolute;left:8px;top:4px;display:flex;gap:3px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:4px 6px}
+#legend .lg{font-size:11px;color:var(--muted);margin-right:3px}
+#legend b{width:24px;height:22px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;font-variant-numeric:tabular-nums;border:1px solid rgba(0,0,0,.15)}
+#pickCard{position:absolute;left:8px;right:8px;bottom:8px;max-width:420px;margin:0 auto;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:10px 12px 8px}
+.pkTop{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+#pkSw{width:42px;height:42px;border-radius:9px;border:1px solid var(--line);flex:none}
+.pkTxt{flex:1;min-width:0;font-size:13px}
+.pkTxt div:first-child{font-weight:600}
+#pkClose{width:38px;padding:0;flex:none}
+.pkMix{display:flex;align-items:center;gap:6px;font-size:13px;margin-bottom:6px}
+#pkHue{width:18px;height:18px;border-radius:50%;border:1px solid var(--line);flex:none}
+.pkRow{display:flex;align-items:center;gap:6px;margin-bottom:4px}
+.pkRow .lbl{width:82px;font-size:12px}
+.strip{display:flex;flex:1;height:24px;border-radius:6px;overflow:hidden;border:1px solid var(--line)}
+.strip i{flex:1}
+.strip i:first-child{box-shadow:inset 0 -3px 0 var(--accent)}
+#focusBar .done.on{background:var(--accent-bg);border-color:var(--accent);color:var(--accent)}
 [hidden]{display:none!important}
 @media (prefers-reduced-motion:reduce){#toast{transition:none}}
 </style>
@@ -84,9 +101,19 @@ body.clean .top,body.clean .panel,body.clean .tabs{display:none!important}
     </div>
     <div id="focusBar" hidden>
       <button id="prevBtn" aria-label="Previous square"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
-      <span id="cellName">A1</span>
+      <span id="cellName" style="min-width:44px">A1</span>
       <button id="nextBtn" aria-label="Next square"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></button>
+      <button id="doneSqBtn" class="done" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg><span id="doneSqTxt">Done</span></button>
       <button id="doneBtn" class="primary" style="min-height:44px;font-size:14px;padding:6px 16px;white-space:nowrap">Exit zoom</button>
+    </div>
+    <div id="legend" hidden aria-label="Tone numbers"></div>
+    <div id="pickCard" hidden>
+      <div class="pkTop"><div id="pkSw"></div><div class="pkTxt"><div id="pkName"></div><div id="pkTone" class="hint" style="margin:0"></div></div><button id="pkClose" aria-label="Close colour picker">✕</button></div>
+      <div class="pkMix"><span id="pkHue"></span><span id="pkMix"></span></div>
+      <div class="pkRow"><span class="lbl">Tints<br>+ white</span><div class="strip" id="stTint"></div></div>
+      <div class="pkRow"><span class="lbl">Shades<br>+ black</span><div class="strip" id="stShade"></div></div>
+      <div class="pkRow"><span class="lbl">Tones<br>+ grey</span><div class="strip" id="stTone"></div></div>
+      <p class="hint" style="margin:4px 0 0">Tap another spot to pick again. The mix is a guide; real paint may need adjusting.</p>
     </div>
     <div id="toast" role="status"></div>
   </main>
@@ -115,17 +142,18 @@ body.clean .top,body.clean .panel,body.clean .tabs{display:none!important}
     </div>
 
     <div class="pane" data-pane="image">
-      <div class="row"><span class="lbl">Image</span><div class="seg"><button data-k="mode" data-v="color">Colour</button><button data-k="mode" data-v="bw">B and W</button><button data-k="mode" data-v="tones">Tones</button></div></div>
+      <div class="row"><span class="lbl">Image</span><div class="seg"><button data-k="mode" data-v="color">Colour</button><button data-k="mode" data-v="bw">Greyscale</button><button data-k="mode" data-v="tones">Tones</button></div></div>
       <div class="row" id="tonesRow"><span class="lbl">Tones</span><div class="seg"><button data-k="tones" data-v="3">3</button><button data-k="tones" data-v="4">4</button><button data-k="tones" data-v="5">5</button></div></div>
-      <p class="hint" id="tonesHint">Tones groups the photo into a few greys, so you see light, middle and dark areas before shading.</p>
+      <p class="hint" id="tonesHint">Tones groups the photo into a few greys, fitted to this photo. 1 is the lightest. Use Pick a colour to see which tone a spot is.</p>
       <div class="row"><span class="lbl">Bright</span><input type="range" data-k="bright" min="-50" max="50" step="1"><span class="val" id="brightVal"></span></div>
       <div class="row"><span class="lbl">Contrast</span><input type="range" data-k="contrast" min="-50" max="50" step="1"><span class="val" id="contrastVal"></span></div>
-      <div class="grid2"><button id="resetImgBtn">Reset image</button></div>
+      <div class="grid2"><button id="pickBtn">Pick a colour</button><button id="resetImgBtn">Reset image</button></div>
     </div>
 
     <div class="pane" data-pane="tools">
       <div class="grid2">
         <button id="focusBtn">Zoom into one square</button>
+        <button id="clearDoneBtn">Clear ticks</button>
         <button id="wakeBtn">Keep screen on</button>
         <button id="mirrorBtn">Mirror</button>
         <button id="rotBtn">Rotate 90°</button>
@@ -134,7 +162,7 @@ body.clean .top,body.clean .panel,body.clean .tabs{display:none!important}
         <label class="btn">Open another photo<input type="file" accept="image/*" class="fileIn"></label>
         <button id="installBtn" hidden>Install app</button>
       </div>
-      <p class="hint">Mirror the photo to check your proportions with fresh eyes. Saved images are sized to your paper at 150 dpi, ready to print.</p>
+      <p class="hint">In zoom, tap Done to tick a finished square. Mirror the photo to check your proportions with fresh eyes. Saved images are sized to your paper at 150 dpi, ready to print.</p>
     </div>
   </section>
 
@@ -150,7 +178,7 @@ body.clean .top,body.clean .panel,body.clean .tabs{display:none!important}
 const $=id=>document.getElementById(id);
 const PAPERS={A5:[14.8,21],A4:[21,29.7],A3:[29.7,42],Letter:[21.6,27.9],Square:[20,20]};
 const COLORS=[['Red','#E5484D'],['Black','#111111'],['White','#FFFFFF'],['Blue','#2F80ED'],['Yellow','#F5C400']];
-const DEF={guide:'grid',sq:2,color:'#E5484D',alpha:.8,thick:2,labels:true,paper:'A4',cw:20,ch:25,land:false,mode:'color',tones:4,bright:0,contrast:0,flip:false,rot:0,place:null};
+const DEF={guide:'grid',sq:2,color:'#E5484D',alpha:.8,thick:2,labels:true,paper:'A4',cw:20,ch:25,land:false,mode:'color',tones:4,bright:0,contrast:0,flip:false,rot:0,place:null,done:{}};
 let S={...DEF};
 try{Object.assign(S,JSON.parse(localStorage.getItem('sg-settings')||'{}'))}catch(e){}
 let saveT;function saveSoon(){clearTimeout(saveT);saveT=setTimeout(()=>{try{localStorage.setItem('sg-settings',JSON.stringify(S))}catch(e){}},300)}
@@ -174,31 +202,64 @@ function orient(){
   const x=c.getContext('2d');x.translate(c.width/2,c.height/2);if(S.flip)x.scale(-1,1);x.rotate(S.rot*Math.PI/180);x.drawImage(baseImg,-w/2,-h/2,w,h);
   src=c;process();
 }
+/* tones: split by this photo's own light-to-dark spread, with soft greys at the ends */
+let toneBin=null;
+const TONE_DARK=45,TONE_LIGHT=232;
+function makeLut(){const C=S.contrast*2.55,f=(259*(C+255))/(255*(259-C)),B=S.bright*2.55,l=new Uint8ClampedArray(256);for(let i=0;i<256;i++)l[i]=f*(i-128)+128+B;return l}
+function lum8(r,g,b){return Math.round(.299*r+.587*g+.114*b)}
+function binsFromHist(h,n){let tot=0;for(let v=0;v<256;v++)tot+=h[v];const bin=new Uint8Array(256);let below=0;for(let v=0;v<256;v++){bin[v]=tot?Math.min(n-1,Math.floor((below+h[v]/2)/tot*n)):Math.min(n-1,Math.floor(v/256*n));below+=h[v]}return bin}
+function toneGrey(bin,n){return Math.round(TONE_DARK+(TONE_LIGHT-TONE_DARK)*bin/(n-1))}
+function updateLegend(){
+  const el=$('legend'),on=S.mode==='tones'&&!!proc;el.hidden=!on;if(!on)return;
+  let h='<span class="lg">Tones</span>';
+  for(let k=1;k<=S.tones;k++){const g=toneGrey(S.tones-k,S.tones);h+=`<b style="background:rgb(${g},${g},${g});color:${g>140?'#1E2225':'#FFFFFF'}">${k}</b>`}
+  el.innerHTML=h;
+}
 function process(){
   if(!src)return;
   const c=document.createElement('canvas');c.width=src.width;c.height=src.height;
   const x=c.getContext('2d',{willReadFrequently:true});x.drawImage(src,0,0);
   if(S.mode!=='color'||S.bright||S.contrast){
     const d=x.getImageData(0,0,c.width,c.height),p=d.data;
-    const C=S.contrast*2.55,f=(259*(C+255))/(255*(259-C)),B=S.bright*2.55,n=S.tones-1;
-    const lut=new Uint8ClampedArray(256);for(let i=0;i<256;i++)lut[i]=f*(i-128)+128+B;
+    const lut=makeLut();let map=null;
+    if(S.mode==='tones'){
+      const hist=new Float64Array(256);
+      for(let i=0;i<p.length;i+=4)hist[lum8(lut[p[i]],lut[p[i+1]],lut[p[i+2]])]++;
+      toneBin=binsFromHist(hist,S.tones);map=new Uint8ClampedArray(256);
+      for(let v=0;v<256;v++)map[v]=toneGrey(toneBin[v],S.tones);
+    }else toneBin=null;
     for(let i=0;i<p.length;i+=4){
       let r=lut[p[i]],g=lut[p[i+1]],b=lut[p[i+2]];
-      if(S.mode!=='color'){let l=.299*r+.587*g+.114*b;if(S.mode==='tones')l=Math.round(l/255*n)/n*255;r=g=b=l}
+      if(S.mode!=='color'){const l=lum8(r,g,b);r=g=b=map?map[l]:l}
       p[i]=r;p[i+1]=g;p[i+2]=b;
     }
     x.putImageData(d,0,0);
-  }
-  proc=c;req();
+  }else toneBin=null;
+  proc=c;updateLegend();updatePick();req();
 }
 function fitScale(fill){const P=paper();return fill?Math.max(P.w/src.width,P.h/src.height):Math.min(P.w/src.width,P.h/src.height)}
 function fit(fill){if(!src)return;const P=paper(),s=fitScale(fill);S.place={x:(P.w-src.width*s)/2,y:(P.h-src.height*s)/2,s};exitFocus();saveSoon();req()}
 
+function sig(){const P=paper();return fmt(P.w)+'x'+fmt(P.h)+'@'+fmt(S.sq)}
+function doneList(){const d=S.done&&S.done[sig()];return Array.isArray(d)?d:[]}
+function isDone(c,r){return doneList().includes(c+','+r)}
+function toggleDone(c,r){if(!S.done||typeof S.done!=='object')S.done={};const k=c+','+r,l=doneList().slice(),i=l.indexOf(k);if(i<0)l.push(k);else l.splice(i,1);S.done[sig()]=l;saveSoon()}
+function drawDone(x,s){
+  const l=doneList();if(!l.length)return;const ac=getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
+  x.save();x.lineCap=x.lineJoin='round';
+  for(const k of l){const[c,r]=k.split(',').map(Number),R=cellRect(c,r);if(R.w<=0||R.h<=0)continue;
+    x.globalAlpha=focus?0:.22;x.fillStyle=ac;x.fillRect(R.x,R.y,R.w,R.h);
+    const rad=Math.min(9/s,Math.min(R.w,R.h)*.3),cx=R.x+R.w-rad*1.3,cy=R.y+R.h-rad*1.3;
+    x.globalAlpha=1;x.beginPath();x.arc(cx,cy,rad,0,7);x.fillStyle=ac;x.fill();x.lineWidth=1.5/s;x.strokeStyle='#fff';x.stroke();
+    const z=rad*.5;x.beginPath();x.moveTo(cx-z,cy);x.lineTo(cx-z*.25,cy+z*.7);x.lineTo(cx+z,cy-z*.6);x.lineWidth=2/s;x.stroke();
+  }
+  x.restore();
+}
 function cellRect(c,r){const P=paper(),q=S.sq,x=c*q,y=r*q;return{x,y,w:Math.min(q,P.w-x),h:Math.min(q,P.h-y)}}
 function cam(){
   const w=cv.clientWidth,h=cv.clientHeight,P=paper();
   if(focus){const c=cellRect(focus.c,focus.r),s=Math.min(w*.8/c.w,(h-80)*.8/c.h);return{s,tx:w/2-(c.x+c.w/2)*s,ty:(h-64)/2-(c.y+c.h/2)*s}}
-  const pad=8,s=Math.min((w-pad*2)/P.w,(h-pad*2)/P.h);return{s,tx:(w-P.w*s)/2,ty:(h-P.h*s)/2}
+  const pad=8,top=S.mode==='tones'&&proc?38:0,s=Math.min((w-pad*2)/P.w,(h-pad*2-top)/P.h);return{s,tx:(w-P.w*s)/2,ty:top+(h-top-P.h*s)/2}
 }
 
 function drawGrid(x,P,s,lab){
@@ -233,13 +294,15 @@ function render(){
   ctx.beginPath();ctx.rect(-big,-big,2*big,2*big);ctx.rect(0,0,P.w,P.h);ctx.fillStyle=cs.getPropertyValue('--dim').trim();ctx.fill('evenodd');
   ctx.strokeStyle='rgba(0,0,0,.35)';ctx.lineWidth=1/c.s;ctx.strokeRect(0,0,P.w,P.h);
   drawGrid(ctx,P,c.s,true);
+  drawDone(ctx,c.s);
+  if(pick){const px=pl.x+pick.ix*pl.s,py=pl.y+pick.iy*pl.s,rr=9/c.s;ctx.beginPath();ctx.arc(px,py,rr,0,7);ctx.lineWidth=4/c.s;ctx.strokeStyle='rgba(0,0,0,.6)';ctx.stroke();ctx.lineWidth=2/c.s;ctx.strokeStyle='#fff';ctx.stroke()}
   if(focus){const r=cellRect(focus.c,focus.r);ctx.beginPath();ctx.rect(-big,-big,2*big,2*big);ctx.rect(r.x,r.y,r.w,r.h);ctx.fillStyle='rgba(0,0,0,.55)';ctx.fill('evenodd');ctx.strokeStyle=cs.getPropertyValue('--accent').trim();ctx.lineWidth=3/c.s;ctx.strokeRect(r.x,r.y,r.w,r.h)}
   ctx.restore();
 }
 
 function updateInfo(){
   const P=paper(),{cols,rows}=counts();
-  $('gridInfo').textContent=`Each square is ${fmt(S.sq)} cm on your paper, ${cols} × ${rows} squares.`;
+  const dn=doneList().length;$('gridInfo').textContent=`Each square is ${fmt(S.sq)} cm on your paper, ${cols} × ${rows} squares.`+(dn?` ${dn} done.`:'');
   $('paperInfo').textContent=`${S.paper==='Custom'?'Custom':S.paper} ${S.land?'landscape':'portrait'}, ${fmt(P.w)} × ${fmt(P.h)} cm.`;
 }
 
@@ -251,14 +314,59 @@ function setFocus(c,r){
     let seen=false;try{seen=localStorage.getItem('sg-zoom-hint')==='1';localStorage.setItem('sg-zoom-hint','1')}catch(e){}
     if(!seen)toast('Swipe for next square. Tap outside to exit.',4000);
   }
-  focus={c,r};$('focusBar').hidden=false;$('cellName').textContent=colName(c)+(r+1);req()
+  if(pick)closePick();
+  focus={c,r};$('focusBar').hidden=false;$('cellName').textContent=colName(c)+(r+1);syncDoneBtn();req()
 }
+function syncDoneBtn(){if(!focus)return;const d=isDone(focus.c,focus.r),b=$('doneSqBtn');b.classList.toggle('on',d);b.setAttribute('aria-pressed',d);b.setAttribute('aria-label',d?'Square done. Tap to untick':'Mark square done')}
 function step(d){if(!focus)return;const{cols,rows}=counts(),n=cols*rows;let i=(focus.r*cols+focus.c+d+n)%n;setFocus(i%cols,Math.floor(i/cols))}
 function exitFocus(){if(!focus)return;focus=null;$('focusBar').hidden=true;req();if(pushed){pushed=false;try{history.back()}catch(e){}}}
 function focusAt(sx,sy){const c=cam(),P=paper(),px=(sx-c.tx)/c.s,py=(sy-c.ty)/c.s;if(px<0||py<0||px>=P.w||py>=P.h)return;setFocus(Math.floor(px/S.sq),Math.floor(py/S.sq))}
+$('doneSqBtn').onclick=()=>{if(!focus)return;toggleDone(focus.c,focus.r);syncDoneBtn();updateInfo();req();toast(isDone(focus.c,focus.r)?colName(focus.c)+(focus.r+1)+' ticked as done':'Tick removed',1500)};
+$('clearDoneBtn').onclick=()=>{const n=doneList().length;if(!n)return toast('No ticked squares yet.');if(!confirm(`Clear all ${n} ticks?`))return;S.done[sig()]=[];saveSoon();updateInfo();req();toast('Ticks cleared')};
 $('prevBtn').onclick=()=>step(-1);$('nextBtn').onclick=()=>step(1);$('doneBtn').onclick=exitFocus;
 window.addEventListener('popstate',()=>{if(focus){pushed=false;focus=null;$('focusBar').hidden=true;req()}});
 $('focusBtn').onclick=()=>{if(!proc)return toast('Open a photo first.');setFocus(0,0)};
+
+/* colour picker */
+let pickMode=false,pick=null;
+function closePick(){pickMode=false;pick=null;$('pickCard').hidden=true;$('pickBtn').classList.remove('on');req()}
+$('pickBtn').onclick=()=>{if(!proc)return toast('Open a photo first.');exitFocus();pickMode=true;$('pickBtn').classList.add('on');closePanel();toast('Tap the photo to pick a colour.')};
+$('pkClose').onclick=closePick;
+function hexOf(r,g,b){return'#'+[r,g,b].map(v=>Math.round(v).toString(16).padStart(2,'0')).join('').toUpperCase()}
+function mixC(a,b,t){return a.map((v,i)=>v+(b[i]-v)*t)}
+function hueName(h){return h<15?'Red':h<40?'Orange':h<65?'Yellow':h<90?'Yellow-green':h<150?'Green':h<190?'Teal':h<250?'Blue':h<290?'Purple':h<335?'Pink':'Red'}
+function pickAt(sx,sy){
+  const c=cam(),pl=S.place,px=(sx-c.tx)/c.s,py=(sy-c.ty)/c.s,ix=(px-pl.x)/pl.s,iy=(py-pl.y)/pl.s;
+  if(ix<0||iy<0||ix>=src.width||iy>=src.height)return toast('Tap on the photo to pick a colour.');
+  pick={ix,iy};updatePick();req();
+}
+function updatePick(){
+  if(!pick||!src)return;
+  const x0=Math.max(0,Math.round(pick.ix)-2),y0=Math.max(0,Math.round(pick.iy)-2),w=Math.min(5,src.width-x0),h=Math.min(5,src.height-y0);
+  const d=src.getContext('2d',{willReadFrequently:true}).getImageData(x0,y0,w,h).data;let r=0,g=0,b=0,n=0;
+  for(let i=0;i<d.length;i+=4){r+=d[i];g+=d[i+1];b+=d[i+2];n++}r/=n;g/=n;b/=n;
+  const col=[r,g,b],mx=Math.max(r,g,b),mn=Math.min(r,g,b),W=mn/255,K=1-mx/255,pure=1-W-K;
+  let hue=0;if(mx>mn){hue=mx===r?((g-b)/(mx-mn))%6:mx===g?(b-r)/(mx-mn)+2:(r-g)/(mx-mn)+4;hue=(hue*60+360)%360}
+  const pct=v=>Math.round(v*100)+'%';
+  $('pkSw').style.background=hexOf(...col);
+  if(pure<.08){
+    $('pkName').textContent='Grey '+hexOf(...col);$('pkHue').style.background=hexOf(...col);
+    $('pkMix').textContent=`Mix: about ${pct(W/(W+K||1))} white + ${pct(K/(W+K||1))} black`;
+  }else{
+    const pc=[0,0,0];const hh=hue/60,X=1-Math.abs(hh%2-1),i=Math.floor(hh)%6;
+    const t=[[1,X,0],[X,1,0],[0,1,X],[0,X,1],[X,0,1],[1,0,X]][i];
+    $('pkName').textContent=hueName(hue)+' '+hexOf(...col);$('pkHue').style.background=hexOf(...t.map(v=>v*255));
+    const parts=[`${hueName(hue).toLowerCase()} ${pct(pure)}`];if(W>=.03)parts.push(`white ${pct(W)}`);if(K>=.03)parts.push(`black ${pct(K)}`);
+    const kind=W>=.1&&K>=.1?'a tone (has grey)':W>=.1?'a tint (has white)':K>=.1?'a shade (has black)':'close to pure colour';
+    $('pkMix').textContent=`Mix: about ${parts.join(' + ')}. This is ${kind}.`;
+  }
+  const lv=.299*r+.587*g+.114*b,grey=[lv,lv,lv],steps=[0,.2,.4,.6,.8];
+  const strip=(id,to)=>$(id).innerHTML=steps.map(t=>`<i style="background:${hexOf(...mixC(col,to,t))}"></i>`).join('');
+  strip('stTint',[255,255,255]);strip('stShade',[0,0,0]);strip('stTone',grey);
+  if(S.mode==='tones'&&toneBin){const lut=makeLut(),l=lum8(lut[Math.round(r)],lut[Math.round(g)],lut[Math.round(b)]);$('pkTone').textContent=`Tone ${S.tones-toneBin[l]} of ${S.tones}`;$('pkTone').hidden=false}
+  else $('pkTone').hidden=true;
+  $('pickCard').hidden=false;
+}
 
 /* gestures */
 const pts=new Map();let last=null,tap=null,lastTap=0,single=0,cleanTold=false;
@@ -277,7 +385,8 @@ cv.addEventListener('pointermove',e=>{
 function up(e){
   if(!pts.has(e.pointerId))return;pts.delete(e.pointerId);
   if(tap&&pts.size===0){
-    if(!tap.moved&&Date.now()-tap.t<350&&proc&&!focus){const now=Date.now(),tx=tap.x,ty=tap.y;clearTimeout(single);if(now-lastTap<320){focusAt(tx,ty);lastTap=0}else{lastTap=now;single=setTimeout(singleTap,320)}}
+    if(!tap.moved&&Date.now()-tap.t<350&&proc&&!focus&&pickMode){pickAt(tap.x,tap.y)}
+    else if(!tap.moved&&Date.now()-tap.t<350&&proc&&!focus){const now=Date.now(),tx=tap.x,ty=tap.y;clearTimeout(single);if(now-lastTap<320){focusAt(tx,ty);lastTap=0}else{lastTap=now;single=setTimeout(singleTap,320)}}
     if(!tap.moved&&Date.now()-tap.t<350&&focus){const c=cam(),r=cellRect(focus.c,focus.r),px=(tap.x-c.tx)/c.s,py=(tap.y-c.ty)/c.s;if(px<r.x||py<r.y||px>r.x+r.w||py>r.y+r.h)exitFocus()}
     if(tap.moved&&focus){const dx=e.offsetX-tap.x;if(Math.abs(dx)>50)step(dx<0?1:-1)}
   }
@@ -316,8 +425,8 @@ function syncUI(){
 $('sqMinus').onclick=()=>setKey('sq',Math.max(.5,S.sq-.5));$('sqPlus').onclick=()=>setKey('sq',Math.min(10,S.sq+.5));
 $('fillBtn').onclick=()=>fit(true);$('fitBtn').onclick=()=>fit(false);
 $('resetImgBtn').onclick=()=>{S.mode='color';S.bright=0;S.contrast=0;S.tones=4;saveSoon();process();syncUI()};
-$('mirrorBtn').onclick=()=>{if(!src)return toast('Open a photo first.');const P=paper(),pl=S.place;S.flip=!S.flip;pl.x=P.w-(pl.x+src.width*pl.s);orient();saveSoon();toast(S.flip?'Photo mirrored':'Mirror off')};
-$('rotBtn').onclick=()=>{if(!src)return toast('Open a photo first.');S.rot=(S.rot+90)%360;orient();fit(true)};
+$('mirrorBtn').onclick=()=>{if(!src)return toast('Open a photo first.');closePick();const P=paper(),pl=S.place;S.flip=!S.flip;pl.x=P.w-(pl.x+src.width*pl.s);orient();saveSoon();toast(S.flip?'Photo mirrored':'Mirror off')};
+$('rotBtn').onclick=()=>{if(!src)return toast('Open a photo first.');closePick();S.rot=(S.rot+90)%360;orient();fit(true)};
 
 /* tabs */
 
@@ -332,7 +441,7 @@ async function dbPut(b){const d=await db();return new Promise((res,rej)=>{const 
 async function dbGet(){const d=await db();return new Promise((res,rej)=>{const r=d.transaction('img').objectStore('img').get('last');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
 function loadBlob(b,fresh){
   const u=URL.createObjectURL(b),i=new Image();
-  i.onload=()=>{baseImg=i;closePanel();if(fresh){S.rot=0;S.flip=false;S.place=null}orient();if(!S.place)fit(true);URL.revokeObjectURL(u)};
+  i.onload=()=>{baseImg=i;closePanel();if(fresh){S.rot=0;S.flip=false;S.place=null;S.done={};closePick()}orient();if(!S.place)fit(true);URL.revokeObjectURL(u)};
   i.onerror=()=>toast('This file can’t be opened. Try a JPG or PNG photo.');
   i.src=u;
 }
