@@ -962,15 +962,26 @@ const CF=(f,css,txt,ph)=>`<div class="tx" data-capf="${f}"${ph?` data-ph="${ph}"
 /* Print: BL = bleed in page px, BLS = cut edges that get bleed (+ page W,H). PREC collects each photo's printed size for the sharpness check. */
 let BL=0,BLS=null,PREC=null,PREC_AT='';
 function bleedBox(x,y,w,h){if(!BL||!BLS)return[x,y,w,h];const e=.5,l=BLS.l&&x<=e?BL:0,t=BLS.t&&y<=e?BL:0,r=BLS.r&&x+w>=BLS.W-e?BL:0,b=BLS.b&&y+h>=BLS.H-e?BL:0;return[x-l,y-t,w+l+r,h+t+b]}
-function phDiv(s,x,y,w,h,q,extra='',idx){const da=idx===undefined?'':` data-slot="${idx}"`;
-  if(PREC&&s&&s.id&&photoMeta.get(s.id))PREC.push({id:s.id,w,h,z:s.z||1,at:PREC_AT});
+/* Photo zoom: 1× fills the frame (crops what does not fit). Below 1× down to Fit shows more of the photo: the photo box shrinks to the photo's shape, centred in its frame, and the page shows around it.
+   Zoom below 1× is kept in s.zo (s.z stays 1), so an older copy of the app simply shows the photo at 1×. */
+function zOf(s){return s?(s.zo??(s.z||1)):1}
+function setZ(s,v){if(v<.995){s.z=1;s.zo=Math.round(v*1000)/1000}else{delete s.zo;s.z=Math.round(v*100)/100}}
+function zFit(s,w,h){const m=s&&photoMeta.get(s.id);if(!m||!m.w||!m.h||!w||!h)return 1;return Math.min(w/m.w,h/m.h)/Math.max(w/m.w,h/m.h)}
+function zEff(s,w,h){const z=zOf(s);return z<1?Math.max(z,zFit(s,w,h)):z}
+function shrinkTo(s,w,h){const m=s&&s.id&&photoMeta.get(s.id),z=zEff(s,w,h);if(z>=1||!m||!m.w||!m.h)return[w,h];const k=Math.max(w/m.w,h/m.h)*z;return[Math.min(w,m.w*k),Math.min(h,m.h*k)]}
+function phDiv(s,x,y,w,h,q,extra='',idx,fw,fh){const da=idx===undefined?'':` data-slot="${idx}"`;
+  if(PREC&&s&&s.id&&photoMeta.get(s.id))PREC.push({id:s.id,w:fw??w,h:fh??h,z:zEff(s,fw??w,fh??h),at:PREC_AT});
+  /* frame size and centre (before shrink and bleed) for zoom, drag and live zoom */
+  const own=fw===undefined;if(own){fw=w;fh=h}const cx=x+w/2,cy=y+h/2;
+  if(own&&s&&s.id){const[nw,nh]=shrinkTo(s,w,h);x+=(w-nw)/2;y+=(h-nh)/2;w=nw;h=nh}
+  const w0=w,h0=h;
   if(s&&s.id)[x,y,w,h]=bleedBox(x,y,w,h);
   const src=s&&photoSrc(s.id,q);
   const box=`left:${r1(x)}px;top:${r1(y)}px;width:${r1(w)}px;height:${r1(h)}px;`;
   if(!src)return`<div class="ph empty"${da} style="${box}background-image:${PLUS};${extra}"></div>`;
-  const m=photoMeta.get(s.id),z=s.z||1;let size='cover';
-  if(m&&m.w&&m.h){const k=Math.max(w/m.w,h/m.h)*z;size=`${r1(m.w*k)}px ${r1(m.h*k)}px`}
-  return`<div class="ph"${da} style="${box}background-image:url('${src}');background-size:${size};background-position:${r1((s.fx??.5)*100)}% ${r1((s.fy??.5)*100)}%;${extra}"></div>`;
+  const m=photoMeta.get(s.id),z=zEff(s,fw,fh);let size='cover',fd='';
+  if(m&&m.w&&m.h){const k=z<1?Math.max(Math.max(fw/m.w,fh/m.h)*z,w>w0+.01?w/m.w:0,h>h0+.01?h/m.h:0):Math.max(w/m.w,h/m.h)*z;size=`${r1(m.w*k)}px ${r1(m.h*k)}px`;fd=` data-fw="${r1(fw)}" data-fh="${r1(fh)}"`+(own?` data-cx="${r1(cx)}" data-cy="${r1(cy)}"`:'')}
+  return`<div class="ph"${da}${fd} style="${box}background-image:url('${src}');background-size:${size};background-position:${r1((s.fx??.5)*100)}% ${r1((s.fy??.5)*100)}%;${extra}"></div>`;
 }
 function moDiv(key,color,x,y,w,h,extra=''){const u=motifURL(key,color);if(!u)return'';return`<div class="mo" style="left:${r1(x)}px;top:${r1(y)}px;width:${r1(w)}px;height:${r1(h)}px;background-image:${u};${extra}"></div>`}
 function stickersHTML(page,W,H){return(page.stickers||[]).map(s=>`<div class="st" data-sid="${s.id}" style="left:${r1(s.x*W)}px;top:${r1(s.y*H)}px;font-size:${Math.round(s.s)}px;transform:translate(-50%,-50%) rotate(${s.r||0}deg)">${esc(s.e)}</div>`).join('')}
@@ -1072,7 +1083,8 @@ function pageHTML(book,page,q){
       else if(page.layout==='spread')x=phDiv(ph[0],0,0,W,H,q,'',0);
       else x=q!=='full'?`<div class="fl" style="left:0;right:0;top:0;bottom:0;align-items:center;justify-content:center">${T(`font-size:${r1(Math.min(W,H)*.03)}px;color:#8A8C86;font-weight:600;`,'Choose a layout with ▦')}</div>`:'';break}
     case 'collage':case 'scatter2':case 'scatter3':{bg=page.bg||(page.layout==='collage'?mix(P.bg,'#FFFFFF',.35):'#FFFFFF');const b=Math.min(W,H)*(page.layout==='collage'?.016:.022);
-      x=slotRects(page.layout,W,H).map((rc,i)=>`<div class="fr" style="left:${r1(rc[0])}px;top:${r1(rc[1])}px;width:${r1(rc[2])}px;height:${r1(rc[3])}px;transform:rotate(${rc[4]}deg)">${phDiv(ph[i],b,b,rc[2]-2*b,rc[3]-2*b,q,'',i)}</div>`).join('');break}
+      x=slotRects(page.layout,W,H).map((rc,i)=>{const iw=rc[2]-2*b,ih=rc[3]-2*b,[nw,nh]=ph[i]&&ph[i].id?shrinkTo(ph[i],iw,ih):[iw,ih],cx=rc[0]+rc[2]/2,cy=rc[1]+rc[3]/2;
+        return`<div class="fr" data-b="${r1(b)}" data-cx="${r1(cx)}" data-cy="${r1(cy)}" style="left:${r1(cx-nw/2-b)}px;top:${r1(cy-nh/2-b)}px;width:${r1(nw+2*b)}px;height:${r1(nh+2*b)}px;transform:rotate(${rc[4]}deg)">${phDiv(ph[i],b,b,nw,nh,q,'',i,iw,ih)}</div>`}).join('');break}
     default:{ // full, two, three, grid4
       x=slotRects(page.layout,W,H).map((rc,i)=>phDiv(ph[i],rc[0],rc[1],rc[2],rc[3],q,'',i)).join('');
     }
@@ -1401,16 +1413,18 @@ function drawPhotoBtns(){const st=$('#stage');if(!st)return;const sr=st.getBound
     })}
 /* Zoom bar along the bottom of a photo (turns with a tilted photo; moves above the caption box when they would overlap) */
 function drawZoomBar(st,sr,el,s,r,sc,obst){const fr=el.closest('.fr'),ang=fr?parseFloat((fr.style.transform.match(/rotate\(([-\d.]+)deg\)/)||[])[1])||0:0;
-  const w=el.offsetWidth*sc,h=el.offsetHeight*sc,BH=34;if(w<90||h<60)return;
+  const fw0=(+el.dataset.fw||el.offsetWidth)*sc,fh0=(+el.dataset.fh||el.offsetHeight)*sc;if(fw0<90||fh0<60)return;
+  const w=Math.max(el.offsetWidth*sc,Math.min(fw0,150)),h=Math.max(el.offsetHeight*sc,Math.min(fh0,60)),BH=34;
   const cx=r.left+r.width/2-sr.left,cy=r.top+r.height/2-sr.top;let d=h/2-BH/2;
   if(!ang)for(const o of obst){const top=cy+d-BH/2+sr.top,L=cx-w/2+sr.left;if(o.left<L+w&&o.right>L&&o.top<top+BH&&o.bottom>top){const nd=o.top-sr.top-6-BH/2-cy;if(nd-BH/2>-h/2+48)d=Math.min(d,nd)}}
-  const k=zKey(el),z=s.z||1,b=document.createElement('div');b.className='zbar'+(w<150?' sm':'')+(w<120?' xs':'')+(k===zHot?' on':'');b.dataset.zk=k;
-  b.innerHTML=`<button type="button" data-zs="-1" aria-label="Zoom out" title="Zoom out">−</button><input type="range" min="1" max="3" step="0.05" value="${z}" aria-label="Zoom photo"><button type="button" data-zs="1" aria-label="Zoom in" title="Zoom in">+</button><span>${z.toFixed(1)}×</span>`;
+  const zmin=zMinEl(el,s),k=zKey(el),z=Math.max(zOf(s),zmin),zl=v=>v<=zmin+.01&&zmin<.995?'Fit':v.toFixed(1)+'×',b=document.createElement('div');b.className='zbar'+(w<150?' sm':'')+(w<120?' xs':'')+(k===zHot?' on':'');b.dataset.zk=k;
+  b.innerHTML=`<button type="button" data-zs="-1" aria-label="Zoom out" title="Zoom out">−</button><input type="range" min="${r1(zmin*100)/100}" max="3" step="0.01" value="${z}" aria-label="Zoom photo"><button type="button" data-zs="1" aria-label="Zoom in" title="Zoom in">+</button><span>${zl(z)}</span>`;
   Object.assign(b.style,{width:w+'px',left:(cx-w/2)+'px',top:(cy-BH/2)+'px',transform:`rotate(${ang}deg) translateY(${d}px)`});
   const inp=b.querySelector('input'),lab=b.querySelector('span');
-  inp.addEventListener('input',()=>{s.z=+inp.value;lab.textContent=s.z.toFixed(1)+'×';liveZoom(el,s)});
-  inp.addEventListener('change',()=>{s.z=+inp.value;changed()});
-  b.addEventListener('click',e=>{e.stopPropagation();const z2=e.target.closest('[data-zs]');if(!z2)return;s.z=Math.round(clamp((s.z||1)+(+z2.dataset.zs)*.25,1,3)*100)/100;changed()});
+  const zIn=()=>{let v=+inp.value;if(v<=zmin+.01)v=zmin;else if(Math.abs(v-1)<.03)v=1;setZ(s,v);return v};
+  inp.addEventListener('input',()=>{lab.textContent=zl(zIn());liveZoom(el,s)});
+  inp.addEventListener('change',()=>{zIn();changed()});
+  b.addEventListener('click',e=>{e.stopPropagation();const z2=e.target.closest('[data-zs]');if(!z2)return;const cur=zOf(s),d=+z2.dataset.zs;let v=cur+d*.25;if(d<0&&cur>1&&v<1)v=1;if(d>0&&cur<1&&v>1)v=1;setZ(s,clamp(v,zmin,3));changed()});
   b.addEventListener('pointerdown',e=>{if(e.pointerType!=='mouse')zFlash(k)});
   st.appendChild(b)}
 function drawCapHandles(){const st=$('#stage');if(!st)return;const p=curPage(),b=selBox();if(!b)return;const c=st.querySelector(`.pgbox.sel .pg .cap[data-bid="${b.id}"]`);if(!c)return;const sr=st.getBoundingClientRect(),r=c.getBoundingClientRect(),g=5;
@@ -2145,7 +2159,7 @@ document.addEventListener('pointerdown',e=>{
   const el=e.target.closest('.stage .pgbox[data-pi] .ph[data-slot]:not(.empty),.stage .pgbox[data-pi] .ph[data-half],.stage .pgbox[data-part="back"] .ph[data-slot]:not(.empty)');
   if(el){const bx=el.closest('.pgbox'),isBack=bx.dataset.part==='back',pi=isBack?0:+bx.dataset.pi-(el.dataset.half?1:0),j=el.dataset.half?0:+el.dataset.slot,s=(isBack?S.book.back:S.book.pages[pi]).photos[j];if(!s)return;
     const m=photoMeta.get(s.id),sc=+($('#stage').dataset.scale)||1;if(!m)return;
-    const w=el.offsetWidth*(el.dataset.span==='2'?2:1),h=el.offsetHeight,k=Math.max(w/m.w,h/m.h)*(s.z||1);
+    const sp2=el.dataset.span==='2',w=sp2?el.offsetWidth*2:(+el.dataset.fw||el.offsetWidth),h=sp2?el.offsetHeight:(+el.dataset.fh||el.offsetHeight),k=Math.max(w/m.w,h/m.h)*(sp2?(s.z||1):zEff(s,w,h));
     pan={el,s,pi,x:e.clientX,y:e.clientY,fx:s.fx??.5,fy:s.fy??.5,ex:m.w*k-w,ey:m.h*k-h,sc,moved:false};el.setPointerCapture(e.pointerId);return}
   const f=e.target.closest('#insp [data-focus]');
   if(f){const s=curPage().photos[+f.dataset.focus];if(!s)return;fxDrag={f,s,moved:false};f.setPointerCapture(e.pointerId)}
@@ -2245,29 +2259,35 @@ let pinch=null,pinRaf=0;
 function liveZoom(el,s){const m=photoMeta.get(s.id);if(!m||!m.w)return;const z=s.z||1;
   if(el.dataset.span==='2'){$$('.stage .ph[data-span="2"]').forEach(h=>{const W=parseFloat(h.style.width),H=parseFloat(h.style.height),half=h.dataset.half?1:0,k=Math.max(2*W/m.w,H/m.h)*z,iw=m.w*k,ih=m.h*k;
     h.style.backgroundSize=`${r1(iw)}px ${r1(ih)}px`;h.style.backgroundPosition=`${r1((2*W-iw)*(s.fx??.5)-half*W)}px ${r1((H-ih)*(s.fy??.5))}px`});return}
-  const w=parseFloat(el.style.width),h=parseFloat(el.style.height),k=Math.max(w/m.w,h/m.h)*z;el.style.backgroundSize=`${r1(m.w*k)}px ${r1(m.h*k)}px`}
+  const fw=+el.dataset.fw||parseFloat(el.style.width),fh=+el.dataset.fh||parseFloat(el.style.height),zz=zEff(s,fw,fh),k=Math.max(fw/m.w,fh/m.h)*zz,iw=m.w*k,ih=m.h*k,nw=Math.min(fw,iw),nh=Math.min(fh,ih);
+  el.style.backgroundSize=`${r1(iw)}px ${r1(ih)}px`;if(!el.dataset.fw)return;
+  el.style.width=r1(nw)+'px';el.style.height=r1(nh)+'px';
+  const fr=el.parentElement&&el.parentElement.classList.contains('fr')?el.parentElement:null;
+  if(fr&&fr.dataset.cx){const b=+fr.dataset.b;Object.assign(fr.style,{left:r1(+fr.dataset.cx-nw/2-b)+'px',top:r1(+fr.dataset.cy-nh/2-b)+'px',width:r1(nw+2*b)+'px',height:r1(nh+2*b)+'px'})}
+  else if(el.dataset.cx){el.style.left=r1(+el.dataset.cx-nw/2)+'px';el.style.top=r1(+el.dataset.cy-nh/2)+'px'}}
+function zMinEl(el,s){return el.dataset.span==='2'?1:zFit(s,+el.dataset.fw||el.offsetWidth,+el.dataset.fh||el.offsetHeight)}
 const gap=t=>Math.hypot(t[0].clientX-t[1].clientX,t[0].clientY-t[1].clientY)||1;
 document.addEventListener('touchstart',e=>{if(S.view!=='edit'||e.touches.length!==2)return;
   const t=e.touches,el=[...t].map(x=>document.elementFromPoint(x.clientX,x.clientY)).map(x=>x&&x.closest(PH_SEL)).find(Boolean)||document.elementFromPoint((t[0].clientX+t[1].clientX)/2,(t[0].clientY+t[1].clientY)/2)?.closest(PH_SEL);
   if(!el)return;const s=slotOfEl(el);if(!s)return;e.preventDefault();
   if(pan){pan.s.fx=pan.fx;pan.s.fy=pan.fy;pan=null}
-  pinch={s,el,d0:gap(t),z0:s.z||1}},{passive:false,capture:true});
+  pinch={s,el,d0:gap(t),z0:zOf(s),zmin:zMinEl(el,s)}},{passive:false,capture:true});
 document.addEventListener('touchmove',e=>{if(!pinch)return;e.preventDefault();if(e.touches.length<2)return;
-  pinch.s.z=Math.round(clamp(pinch.z0*gap(e.touches)/pinch.d0,1,3)*100)/100;
+  setZ(pinch.s,clamp(pinch.z0*gap(e.touches)/pinch.d0,pinch.zmin,3));
   if(!pinRaf)pinRaf=requestAnimationFrame(()=>{pinRaf=0;if(pinch)liveZoom(pinch.el,pinch.s)})},{passive:false,capture:true});
-const pinchEnd=e=>{if(!pinch||(e.touches&&e.touches.length>=2))return;const moved=pinch.s.z!==pinch.z0;pinch=null;if(moved){panJustMoved=true;setTimeout(()=>panJustMoved=false,400);changed({insp:true})}};
+const pinchEnd=e=>{if(!pinch||(e.touches&&e.touches.length>=2))return;const moved=zOf(pinch.s)!==pinch.z0;pinch=null;if(moved){panJustMoved=true;setTimeout(()=>panJustMoved=false,400);changed({insp:true})}};
 document.addEventListener('touchend',pinchEnd,true);document.addEventListener('touchcancel',pinchEnd,true);
 /* Laptop: trackpad pinch or Ctrl + mouse wheel on a photo zooms the photo; on the page area the browser never zooms */
 let wzT=null;
 document.addEventListener('wheel',e=>{if(!e.ctrlKey||S.view!=='edit'||!e.target.closest('.stage'))return;e.preventDefault();
   const el=e.target.closest(PH_SEL);if(!el)return;const s=slotOfEl(el);if(!s)return;
-  s.z=Math.round(clamp((s.z||1)*Math.exp(-e.deltaY*.01),1,3)*100)/100;liveZoom(el,s);
+  setZ(s,clamp(zOf(s)*Math.exp(-e.deltaY*.01),zMinEl(el,s),3));liveZoom(el,s);
   clearTimeout(wzT);wzT=setTimeout(()=>{panJustMoved=true;setTimeout(()=>panJustMoved=false,400);changed({insp:true})},250)},{passive:false});
 /* Safari on Mac sends its own pinch events */
 let gz=null;
-document.addEventListener('gesturestart',e=>{if(S.view!=='edit'||!e.target.closest||!e.target.closest('.stage'))return;e.preventDefault();const el=e.target.closest(PH_SEL),s=el&&slotOfEl(el);gz=s?{el,s,z0:s.z||1}:{}},{passive:false});
-document.addEventListener('gesturechange',e=>{if(!gz)return;e.preventDefault();if(!gz.s)return;gz.s.z=Math.round(clamp(gz.z0*e.scale,1,3)*100)/100;liveZoom(gz.el,gz.s)},{passive:false});
-document.addEventListener('gestureend',e=>{if(!gz)return;e.preventDefault();const g=gz;gz=null;if(g.s&&g.s.z!==g.z0)changed({insp:true})},{passive:false});
+document.addEventListener('gesturestart',e=>{if(S.view!=='edit'||!e.target.closest||!e.target.closest('.stage'))return;e.preventDefault();const el=e.target.closest(PH_SEL),s=el&&slotOfEl(el);gz=s?{el,s,z0:zOf(s),zmin:zMinEl(el,s)}:{}},{passive:false});
+document.addEventListener('gesturechange',e=>{if(!gz)return;e.preventDefault();if(!gz.s)return;setZ(gz.s,clamp(gz.z0*e.scale,gz.zmin,3));liveZoom(gz.el,gz.s)},{passive:false});
+document.addEventListener('gestureend',e=>{if(!gz)return;e.preventDefault();const g=gz;gz=null;if(g.s&&zOf(g.s)!==g.z0)changed({insp:true})},{passive:false});
 let rzT=null;window.addEventListener('resize',()=>{clearTimeout(rzT);rzT=setTimeout(()=>{if(S.view==='edit')renderStage()},120)});
 window.addEventListener('pagehide',()=>{if(S.book)saveBook()});
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'&&S.book)saveBook()});
